@@ -1,1 +1,62 @@
+```python
+import requests
+import json
+import os
+import geoip2.database
 
+# Get the URL to check
+def get_url():
+    while True:
+        try:
+            url = input("Enter the phishing URL to trace: ")
+            response = requests.get(url)
+            if response.status_code != 200:
+                print("URL is invalid. Please try again.")
+            else:
+                return url
+        except:
+            print("Error occurred while retrieving URL. Please try again.")
+
+# Get the true IP address of the website
+def get_ip_address(url):
+    response = requests.get(url)
+    if response.status_code != 200:
+        return None
+    ip_address = response.json()['origin']
+    return ip_address
+
+# Get the geolocation information for the IP address
+def get_geolocation(ip_address):
+    try:
+        reader = geoip2.database.Reader('GeoLite2-City.mmdb')
+        response = reader.city(ip_address)
+        city = response.city.name
+        region = response.subdivisions.most_specific.name
+        country = response.country.name
+        return city, region, country
+    except:
+        return None
+
+# Execute the main function
+def main():
+    url = get_url()
+    ip_address = get_ip_address(url)
+    if ip_address is None:
+        print("Error occurred while retrieving IP address. Aborting.")
+        return
+    print("IP Address: {}".format(ip_address))
+    
+    geolocation = get_geolocation(ip_address)
+    if geolocation is None:
+        print("Error occurred while retrieving geolocation. Aborting.")
+        return
+    print("Geolocation: {}, {}, {}".format(*geolocation))
+
+if __name__ == '__main__':
+    try:
+        main()
+    except Exception as e:
+        with open('phishing_log.txt', 'a') as f:
+            f.write(str(e) + '\n')
+        print("An error occurred. Please check the log file for details.")
+``` 
